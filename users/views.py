@@ -26,8 +26,10 @@ from django.utils import timezone
 from academics.forms import CareerForm, FacultyForm, FinalExamForm, GradeForm, SubjectForm
 from academics.models import Career, Faculty, FinalExam, Grade, Subject
 from inscriptions.models import FinalExamInscription, SubjectInscription
+
 from users.forms import AdministratorProfileForm, ProfessorProfileForm, StudentProfileForm, UserForm
 from users.models import CustomUser, Professor, Student
+from users.services import UserProfileService
 
 
 # --------- Admin Views -------
@@ -61,19 +63,13 @@ def user_list(request):
     return render(request, "users/user_list.html", {"users": users})
 
 
+
 @login_required
 @user_passes_test(is_admin)
 def user_create(request):
     """
     Create a new user and optional role-specific profile.
-
-    Behavior:
-        - Determines selected role from POST.
-        - Validates UserForm and the matching profile form.
-        - Creates both inside an atomic transaction.
-
-    Returns:
-        HttpResponse: Redirect to list on success or form page on error.
+    Ahora usa UserProfileService para separar la lógica de negocio.
     """
     selected_role = None
     if request.method == "POST":
@@ -93,12 +89,7 @@ def user_create(request):
             profile_form = None
 
         if user_form.is_valid() and (profile_form is None or profile_form.is_valid()):
-            with transaction.atomic():
-                user = user_form.save()
-                if profile_form is not None:
-                    profile = profile_form.save(commit=False)
-                    profile.user = user
-                    profile.save()
+            UserProfileService.create_user_with_profile(user_form, profile_form, selected_role)
             messages.success(request, "Usuario creado correctamente.")
             return redirect("users:user-list")
     else:
