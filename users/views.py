@@ -1,3 +1,53 @@
+from django.http import JsonResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from users.student_services import StudentRecordService
+# --- Ficha del Alumno: JSON y PDF ---
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def student_record_json(request):
+    """
+    Devuelve la ficha del alumno en formato JSON.
+    """
+    data = StudentRecordService.get_student_record(request.user)
+    if not data:
+        return JsonResponse({'error': 'Perfil de alumno no encontrado.'}, status=404)
+    return JsonResponse(data)
+
+
+@login_required
+def student_record_pdf(request):
+    """
+    Devuelve la ficha del alumno en formato PDF.
+    """
+    data = StudentRecordService.get_student_record(request.user)
+    if not data:
+        return HttpResponse('Perfil de alumno no encontrado.', status=404)
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(72, 750, "Ficha del Alumno")
+    p.setFont("Helvetica", 12)
+    y = 720
+    for label, key in [
+        ("Nro de Legajo", "student_id"),
+        ("Apellido", "last_name"),
+        ("Nombre", "first_name"),
+        ("DNI", "dni"),
+        ("Carrera", "career"),
+        ("Facultad", "faculty")
+    ]:
+        p.drawString(72, y, f"{label}: {data.get(key, '')}")
+        y -= 24
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="ficha_alumno.pdf"'
+    return response
 """Views for Users app: admin, student, and professor workflows.
 
 Includes:

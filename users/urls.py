@@ -17,6 +17,9 @@ from . import views
 app_name = "users"
 
 urlpatterns = [
+    # Ficha del Alumno
+    path('student/record/json/', views.student_record_json, name='student-record-json'),
+    path('student/record/pdf/', views.student_record_pdf, name='student-record-pdf'),
     # Admin
     path('admin/dashboard/', views.admin_dashboard, name='admin-dashboard'),
     path('admin/users/', views.user_list, name='user-list'),
